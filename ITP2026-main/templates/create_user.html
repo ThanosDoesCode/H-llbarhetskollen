@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Användare</h1>
+
+{% if message %}
+<div class="message">{{ message }}</div>
+{% endif %}
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
+
+<h2>Skapa användare</h2>
+<form method="post" action="/ui/users">
+    <label>Namn</label>
+    <input type="text" name="name" placeholder="Namn">
+    <button type="submit">Skapa</button>
+</form>
+
+<h2>Befintliga användare</h2>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Namn</th>
+        <th>Åtgärd</th>
+    </tr>
+    {% for u in users %}
+    <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.name }}</td>
+        <td>
+            <form method="post" action="/ui/users/{{ u.id }}/delete">
+                <button type="submit" class="danger" onclick="return confirm('Ta bort {{ u.name }}?');">Ta bort</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

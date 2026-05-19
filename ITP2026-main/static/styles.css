@@ -1,0 +1,133 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+nav {
+    background-color: #2c7a4b;
+    padding: 12px 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+.container {
+    max-width: 900px;
+    margin: 32px auto;
+    background: white;
+    padding: 32px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+    margin-bottom: 24px;
+    color: #2c7a4b;
+}
+
+h2 {
+    margin-bottom: 16px;
+    margin-top: 24px;
+    color: #444;
+}
+
+.message {
+    background: #d4edda;
+    color: #155724;
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 10px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 400px;
+    margin-bottom: 24px;
+}
+
+input, select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+}
+
+button {
+    padding: 8px 20px;
+    background-color: #2c7a4b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    width: fit-content;
+}
+
+button:hover {
+    background-color: #235e39;
+}
+
+button.danger {
+    background-color: #c0392b;
+}
+
+button.danger:hover {
+    background-color: #a93226;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+th, td {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 14px;
+}
+
+th {
+    background-color: #2c7a4b;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+}

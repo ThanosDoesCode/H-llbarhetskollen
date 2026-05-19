@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Veckorapport</h1>
+
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
+
+<form method="get" action="/ui/reports/weekly">
+    <label>Användare</label>
+    <select name="user_id">
+        <option value="">-- Välj användare --</option>
+        {% for u in users %}
+        <option value="{{ u.id }}" {% if selected_user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Veckans startdatum (måndag)</label>
+    <input type="date" name="week_start" value="{{ week_start or '' }}">
+
+    <button type="submit">Visa rapport</button>
+</form>
+
+{% if total_co2e is not none %}
+<h2>Resultat</h2>
+<table>
+    <tr>
+        <th>Period</th>
+        <th>Total CO₂e (kg)</th>
+    </tr>
+    <tr>
+        <td>{{ week_start }} till {{ week_end }}</td>
+        <td>{{ "%.2f"|format(total_co2e) }}</td>
+    </tr>
+</table>
+{% endif %}
+{% endblock %}
