@@ -21,6 +21,7 @@ from .schemas import (
 )
 from .services.emissions import Factor, FactorMap, calculate_co2e
 
+# Lifespan körs när servern startar — skapar alla databastabeller automatiskt om de inte finns
 @asynccontextmanager
 async def lifespan(app):
     Base.metadata.create_all(bind=engine)
@@ -29,6 +30,7 @@ async def lifespan(app):
 app = FastAPI(title="Hållbarhetskollen API (starter)", lifespan=lifespan)
 
 import pathlib
+# _BASE pekar på projektets rotmapp så att templates och static hittas oavsett varifrån servern körs
 _BASE = pathlib.Path(__file__).parent.parent
 templates = Jinja2Templates(directory=str(_BASE / "templates"))
 app.mount("/static", StaticFiles(directory=str(_BASE / "static")), name="static")
@@ -45,6 +47,7 @@ def ui_home(request: Request) -> HTMLResponse:
 
 @app.get("/ui/users", response_class=HTMLResponse)
 def ui_users(request: Request, db: Session = Depends(get_session)) -> HTMLResponse:
+    # Hämtar alla användare från databasen sorterade efter id
     users = list(db.execute(select(User).order_by(User.id.asc())).scalars().all())
     tpl = templates.get_template("create_user.html")
     html = tpl.render({"request": request, "users": users, "message": None, "error": None})
@@ -55,6 +58,7 @@ def ui_create_user(request: Request, name: str = Form(default=""), db: Session =
     name = name.strip()
     users = list(db.execute(select(User).order_by(User.id.asc())).scalars().all())
     tpl = templates.get_template("create_user.html")
+    # Validerar att namnet inte är tomt innan vi sparar i databasen
     if not name:
         html = tpl.render({"request": request, "users": users, "message": None, "error": "Name får inte vara tomt."})
         return HTMLResponse(html)
@@ -82,17 +86,32 @@ def ui_delete_user(user_id: int, request: Request, db: Session = Depends(get_ses
 
 @app.get("/ui/activities", response_class=HTMLResponse)
 def ui_activities(request: Request, db: Session = Depends(get_session)) -> HTMLResponse:
+    # Hämtar alla användare för att visa i dropdown-menyn
     users = list(db.execute(select(User).order_by(User.id.asc())).scalars().all())
+
+    # Hämtar alla emissionsfaktorer från databasen
     factors = list(db.execute(select(EmissionFactor)).scalars().all())
+
+    # Skapar en sorterad lista med unika kategorier för dropdown-menyn
     categories = sorted(set(f.category for f in factors))
+
+    # Hämtar alla aktiviteter, nyast först
     activities_raw = list(db.execute(select(Activity).order_by(Activity.id.desc())).scalars().all())
+
+    # Skapar en uppslagsordbok {user_id: namn} för att visa användarnamn i tabellen
     user_map = {u.id: u.name for u in users}
+
+    # Laddar emissionsfaktorerna som en ordbok för beräkning av CO2e
     factor_map = _load_factor_map(db)
+
+    # Beräknar CO2e för varje aktivitet och bygger en lista med ordböcker för mallen
     activities_out = []
     for a in activities_raw:
         try:
+            # calculate_co2e multiplicerar mängden med emissionsfaktorn för kategori+nyckel
             co2e = calculate_co2e(a.category, a.key, a.amount, factor_map)
         except KeyError:
+            # Om faktorn saknas sätter vi co2e till None istället för att krascha
             co2e = None
         activities_out.append({
             "user_name": user_map.get(a.user_id, "?"),
@@ -102,10 +121,13 @@ def ui_activities(request: Request, db: Session = Depends(get_session)) -> HTMLR
             "date": a.date,
             "co2e": co2e,
         })
+
+    # Bygger en JSON-struktur {kategori: [nyckel1, nyckel2]} för JavaScript-dropdownen
     factor_map_dict: dict[str, list[str]] = {}
     for f in factors:
         factor_map_dict.setdefault(f.category, []).append(f.key)
     factors_json = json.dumps(factor_map_dict)
+
     tpl = templates.get_template("activities.html")
     html = tpl.render({
         "request": request,
@@ -114,7 +136,7 @@ def ui_activities(request: Request, db: Session = Depends(get_session)) -> HTMLR
         "categories": categories,
         "factors_json": factors_json,
         "activities": activities_out,
-        "today": dt.date.today().isoformat(),
+        "today": dt.date.today().isoformat(),  # Fyller i dagens datum automatiskt i formuläret
         "message": None,
         "error": None,
     })
@@ -123,12 +145,12 @@ def ui_activities(request: Request, db: Session = Depends(get_session)) -> HTMLR
 @app.post("/ui/activities", response_class=HTMLResponse)
 def ui_create_activity(
     request: Request,
-    user_id: int = Form(...),
+    user_id: int = Form(...),      # Form(...) betyder att fältet är obligatoriskt
     category: str = Form(...),
     key: str = Form(...),
     amount: float = Form(...),
     date: str = Form(...),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session),  # Depends injicerar databassessionen automatiskt
 ) -> HTMLResponse:
     users = list(db.execute(select(User).order_by(User.id.asc())).scalars().all())
     factors = list(db.execute(select(EmissionFactor)).scalars().all())
@@ -138,14 +160,20 @@ def ui_create_activity(
         factor_map_dict_post.setdefault(f.category, []).append(f.key)
     factors_json = json.dumps(factor_map_dict_post)
     tpl = templates.get_template("activities.html")
+
+    # Validerar att datumet är i rätt format innan vi sparar
     try:
         parsed_date = dt.date.fromisoformat(date)
     except ValueError:
         html = tpl.render({"request": request, "users": users, "factors": factors, "categories": categories, "factors_json": factors_json, "activities": [], "today": dt.date.today().isoformat(), "message": None, "error": "Ogiltigt datumformat."})
         return HTMLResponse(html)
+
+    # Skapar en ny aktivitet och sparar den i databasen
     activity = Activity(user_id=user_id, category=category, key=key, amount=amount, date=parsed_date)
     db.add(activity)
     db.commit()
+
+    # Laddar om alla aktiviteter efter att den nya sparats
     activities_raw = list(db.execute(select(Activity).order_by(Activity.id.desc())).scalars().all())
     user_map = {u.id: u.name for u in users}
     factor_map = _load_factor_map(db)
@@ -173,19 +201,24 @@ def ui_weekly_report(
     week_start: str | None = None,
     db: Session = Depends(get_session),
 ) -> HTMLResponse:
+    # Hämtar alla användare för dropdown-menyn
     users = list(db.execute(select(User).order_by(User.id.asc())).scalars().all())
     tpl = templates.get_template("weekly.html")
     total_co2e = None
     week_end = None
     error = None
+
+    # Beräknar bara rapporten om användare och startdatum är valda
     if user_id is not None and week_start:
         try:
             start = dt.date.fromisoformat(week_start)
+            # Veckans slut är alltid 6 dagar efter startdatumet
             end = start + dt.timedelta(days=6)
             week_end = str(end)
         except ValueError:
             error = "Ogiltigt datumformat, använd YYYY-MM-DD."
         else:
+            # Hämtar alla aktiviteter för den valda användaren inom veckan
             stmt = (
                 select(Activity)
                 .where(Activity.user_id == user_id)
@@ -194,12 +227,16 @@ def ui_weekly_report(
             )
             activities = list(db.execute(stmt).scalars().all())
             factor_map = _load_factor_map(db)
+
+            # Summerar CO2e för alla aktiviteter under veckan
             total_co2e = 0.0
             for a in activities:
                 try:
                     total_co2e += calculate_co2e(a.category, a.key, a.amount, factor_map)
                 except KeyError:
+                    # Hoppar över aktiviteter vars faktor saknas i databasen
                     continue
+
     html = tpl.render({
         "request": request,
         "users": users,
@@ -224,6 +261,8 @@ def list_users(db: Session = Depends(get_session)) -> list[User]:
     return list(db.execute(select(User)).scalars().all())
 
 def _load_factor_map(db: Session) -> FactorMap:
+    # Laddar alla emissionsfaktorer och bygger en ordbok med (kategori, nyckel) som nyckel
+    # Detta gör det snabbt att slå upp rätt faktor vid beräkning av CO2e
     factors = db.execute(select(EmissionFactor)).scalars().all()
     mapping: FactorMap = {}
     for f in factors:
