@@ -28,8 +28,10 @@ async def lifespan(app):
 
 app = FastAPI(title="Hållbarhetskollen API (starter)", lifespan=lifespan)
 
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+import pathlib
+_BASE = pathlib.Path(__file__).parent.parent
+templates = Jinja2Templates(directory=str(_BASE / "templates"))
+app.mount("/static", StaticFiles(directory=str(_BASE / "static")), name="static")
 
 @app.get("/health")
 def health() -> dict:
@@ -100,7 +102,10 @@ def ui_activities(request: Request, db: Session = Depends(get_session)) -> HTMLR
             "date": a.date,
             "co2e": co2e,
         })
-    factors_json = json.dumps([{"category": f.category, "key": f.key} for f in factors])
+    factor_map_dict: dict[str, list[str]] = {}
+    for f in factors:
+        factor_map_dict.setdefault(f.category, []).append(f.key)
+    factors_json = json.dumps(factor_map_dict)
     tpl = templates.get_template("activities.html")
     html = tpl.render({
         "request": request,
@@ -109,6 +114,7 @@ def ui_activities(request: Request, db: Session = Depends(get_session)) -> HTMLR
         "categories": categories,
         "factors_json": factors_json,
         "activities": activities_out,
+        "today": dt.date.today().isoformat(),
         "message": None,
         "error": None,
     })
@@ -127,12 +133,15 @@ def ui_create_activity(
     users = list(db.execute(select(User).order_by(User.id.asc())).scalars().all())
     factors = list(db.execute(select(EmissionFactor)).scalars().all())
     categories = sorted(set(f.category for f in factors))
-    factors_json = json.dumps([{"category": f.category, "key": f.key} for f in factors])
+    factor_map_dict_post: dict[str, list[str]] = {}
+    for f in factors:
+        factor_map_dict_post.setdefault(f.category, []).append(f.key)
+    factors_json = json.dumps(factor_map_dict_post)
     tpl = templates.get_template("activities.html")
     try:
         parsed_date = dt.date.fromisoformat(date)
     except ValueError:
-        html = tpl.render({"request": request, "users": users, "factors": factors, "categories": categories, "factors_json": factors_json, "activities": [], "message": None, "error": "Ogiltigt datumformat."})
+        html = tpl.render({"request": request, "users": users, "factors": factors, "categories": categories, "factors_json": factors_json, "activities": [], "today": dt.date.today().isoformat(), "message": None, "error": "Ogiltigt datumformat."})
         return HTMLResponse(html)
     activity = Activity(user_id=user_id, category=category, key=key, amount=amount, date=parsed_date)
     db.add(activity)
@@ -154,7 +163,7 @@ def ui_create_activity(
             "date": a.date,
             "co2e": co2e,
         })
-    html = tpl.render({"request": request, "users": users, "factors": factors, "categories": categories, "factors_json": factors_json, "activities": activities_out, "message": "Aktivitet sparad!", "error": None})
+    html = tpl.render({"request": request, "users": users, "factors": factors, "categories": categories, "factors_json": factors_json, "activities": activities_out, "today": dt.date.today().isoformat(), "message": "Aktivitet sparad!", "error": None})
     return HTMLResponse(html)
 
 @app.get("/ui/reports/weekly", response_class=HTMLResponse)

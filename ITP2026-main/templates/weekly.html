@@ -1,37 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Veckorapport</h1>
+<div class="page">
+  <a href="/ui" class="back-btn">← Hem</a>
+  <h1>Veckorapport</h1>
 
-{% if error %}
-<div class="error">{{ error }}</div>
-{% endif %}
+  {% if error %}
+  <div class="msg-error">⚠ {{ error }}</div>
+  {% endif %}
 
-<form method="get" action="/ui/reports/weekly">
-    <label>Användare</label>
-    <select name="user_id">
-        <option value="">-- Välj användare --</option>
-        {% for u in users %}
-        <option value="{{ u.id }}" {% if selected_user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
-        {% endfor %}
-    </select>
+  <div class="card">
+    <h2>Välj period</h2>
+    <form method="get" action="/ui/reports/weekly">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="user_id">Användare</label>
+          <select id="user_id" name="user_id" required>
+            <option value="">— Välj användare —</option>
+            {% for user in users %}
+            <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+              {{ user.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="week_start">Veckostart (måndag)</label>
+          <input type="date" id="week_start" name="week_start" value="{{ week_start or '' }}">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">📊 Visa rapport</button>
+    </form>
+  </div>
 
-    <label>Veckans startdatum (måndag)</label>
-    <input type="date" name="week_start" value="{{ week_start or '' }}">
-
-    <button type="submit">Visa rapport</button>
-</form>
-
-{% if total_co2e is not none %}
-<h2>Resultat</h2>
-<table>
-    <tr>
-        <th>Period</th>
-        <th>Total CO₂e (kg)</th>
-    </tr>
-    <tr>
-        <td>{{ week_start }} till {{ week_end }}</td>
-        <td>{{ "%.2f"|format(total_co2e) }}</td>
-    </tr>
-</table>
-{% endif %}
+  {% if total_co2e is not none %}
+  <div class="card">
+    <h2>Resultat — {{ week_start }} till {{ week_end }}</h2>
+    <div style="text-align: center; padding: 2rem 0;">
+      <div style="font-size: 3rem; font-weight: 800; color: #1b5e20;">
+        {{ "%.2f"|format(total_co2e) }}
+      </div>
+      <div style="font-size: 1rem; color: #666; margin-top: 0.25rem;">kg CO₂e denna vecka</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

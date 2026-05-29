@@ -1,85 +1,106 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Aktiviteter</h1>
+<div class="page">
+    <a href="/ui" class="back-btn">← Hem</a>
+  <h1>Aktiviteter</h1>
 
-{% if message %}
-<div class="message">{{ message }}</div>
-{% endif %}
-{% if error %}
-<div class="error">{{ error }}</div>
-{% endif %}
+  {% if message %}
+  <div class="msg-success">✓ {{ message }}</div>
+  {% endif %}
+  {% if error %}
+  <div class="msg-error">⚠ {{ error }}</div>
+  {% endif %}
 
-<h2>Logga aktivitet</h2>
-<form method="post" action="/ui/activities">
-    <label>Användare</label>
-    <select name="user_id">
-        {% for u in users %}
-        <option value="{{ u.id }}">{{ u.name }}</option>
-        {% endfor %}
-    </select>
+  <div class="card">
+    <h2>Logga aktivitet</h2>
+    <form method="post" action="/ui/activities">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="user_id">Användare</label>
+          <select id="user_id" name="user_id" required>
+            <option value="">— Välj användare —</option>
+            {% for user in users %}
+            <option value="{{ user.id }}">{{ user.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="category">Kategori</label>
+          <select id="category" name="category" required onchange="updateKeys()">
+            <option value="">— Välj kategori —</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="key">Nyckel</label>
+          <select id="key" name="key" required>
+            <option value="">— Välj kategori först —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="amount">Mängd</label>
+          <input type="number" id="amount" name="amount" step="0.01" min="0" placeholder="t.ex. 10.5" required>
+        </div>
+        <div class="form-group">
+          <label for="date">Datum</label>
+          <input type="date" id="date" name="date" required value="{{ today }}">
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">+ Logga aktivitet</button>
+    </form>
+  </div>
 
-    <label>Kategori</label>
-    <select name="category" id="category" onchange="updateKeys()">
-        {% for category in categories %}
-        <option value="{{ category }}">{{ category }}</option>
-        {% endfor %}
-    </select>
+  <div class="card">
+    <h2>Loggade aktiviteter</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Användare</th>
+            <th>Kategori</th>
+            <th>Nyckel</th>
+            <th>Mängd</th>
+            <th>CO₂e (kg)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in activities %}
+          <tr>
+            <td>{{ a.date }}</td>
+            <td>{{ a.user_name }}</td>
+            <td>{{ a.category }}</td>
+            <td>{{ a.key }}</td>
+            <td>{{ a.amount }}</td>
+            <td><span class="stat-badge">{{ "%.2f"|format(a.co2e) if a.co2e is not none else "–" }}</span></td>
+          </tr>
+          {% else %}
+          <tr class="empty-row"><td colspan="6">Inga aktiviteter loggade ännu</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-    <label>Nyckel</label>
-    <select name="key" id="key">
-        {% for factor in factors %}
-        <option value="{{ factor.key }}" data-category="{{ factor.category }}">{{ factor.key }}</option>
-        {% endfor %}
-    </select>
-
-    <label>Mängd</label>
-    <input type="number" name="amount" step="0.01" min="0.01" placeholder="t.ex. 10">
-
-    <label>Datum</label>
-    <input type="date" name="date">
-
-    <button type="submit">Spara</button>
-</form>
-
-<h2>Aktiviteter</h2>
-<table>
-    <tr>
-        <th>Användare</th>
-        <th>Kategori</th>
-        <th>Nyckel</th>
-        <th>Mängd</th>
-        <th>Datum</th>
-        <th>CO₂e (kg)</th>
-    </tr>
-    {% for a in activities %}
-    <tr>
-        <td>{{ a.user_name }}</td>
-        <td>{{ a.category }}</td>
-        <td>{{ a.key }}</td>
-        <td>{{ a.amount }}</td>
-        <td>{{ a.date }}</td>
-        <td>{{ "%.2f"|format(a.co2e) if a.co2e is not none else "?" }}</td>
-    </tr>
-    {% endfor %}
-</table>
-
+<script id="factor-map-data" type="application/json">
+{{ factors_json | safe }}
+</script>
 <script>
-    const factors = {{ factors_json | safe }};
-
-    function updateKeys() {
-        const category = document.getElementById("category").value;
-        const keySelect = document.getElementById("key");
-        keySelect.innerHTML = "";
-        factors
-            .filter(f => f.category === category)
-            .forEach(f => {
-                const opt = document.createElement("option");
-                opt.value = f.key;
-                opt.textContent = f.key;
-                keySelect.appendChild(opt);
-            });
-    }
-
-    updateKeys();
+const factorMap = JSON.parse(document.getElementById("factor-map-data").textContent || "{}");
+function updateKeys() {
+  const cat = document.getElementById("category").value;
+  const keySelect = document.getElementById("key");
+  keySelect.innerHTML = '<option value="">— Välj nyckel —</option>';
+  if (cat && factorMap[cat]) {
+    factorMap[cat].forEach(k => {
+      const opt = document.createElement("option");
+      opt.value = k; opt.textContent = k;
+      keySelect.appendChild(opt);
+    });
+  }
+}
 </script>
 {% endblock %}

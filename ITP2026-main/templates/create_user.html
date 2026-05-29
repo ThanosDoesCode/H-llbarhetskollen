@@ -1,38 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Användare</h1>
+<div class="page">
+  <a href="/ui" class="back-btn">← Hem</a>
+  <h1>Användare</h1>
 
-{% if message %}
-<div class="message">{{ message }}</div>
-{% endif %}
-{% if error %}
-<div class="error">{{ error }}</div>
-{% endif %}
+  {% if message %}
+  <div class="msg-success">✓ {{ message }}</div>
+  {% endif %}
+  {% if error %}
+  <div class="msg-error">⚠ {{ error }}</div>
+  {% endif %}
 
-<h2>Skapa användare</h2>
-<form method="post" action="/ui/users">
-    <label>Namn</label>
-    <input type="text" name="name" placeholder="Namn">
-    <button type="submit">Skapa</button>
-</form>
+  <div class="card">
+    <h2>Skapa ny användare</h2>
+    <form method="post" action="/ui/users">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">Namn</label>
+          <input type="text" id="name" name="name" placeholder="t.ex. Anna" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">+ Skapa användare</button>
+    </form>
+  </div>
 
-<h2>Befintliga användare</h2>
-<table>
-    <tr>
-        <th>ID</th>
-        <th>Namn</th>
-        <th>Åtgärd</th>
-    </tr>
-    {% for u in users %}
-    <tr>
-        <td>{{ u.id }}</td>
-        <td>{{ u.name }}</td>
-        <td>
-            <form method="post" action="/ui/users/{{ u.id }}/delete">
-                <button type="submit" class="danger" onclick="return confirm('Ta bort {{ u.name }}?');">Ta bort</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+  <div class="card">
+    <h2>Befintliga användare</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Namn</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.name }}</td>
+            <td>
+              <form method="post" action="/ui/users/{{ user.id }}/delete" onsubmit="return confirm('Ta bort {{ user.name }}?')">
+                <button type="submit" class="btn btn-danger">✕ Ta bort</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr class="empty-row"><td colspan="3">Inga användare ännu</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {% endblock %}

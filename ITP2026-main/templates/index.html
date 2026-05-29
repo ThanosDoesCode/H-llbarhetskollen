@@ -1,5 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Hållbarhetskollen</h1>
-<p>Välkommen! Använd menyn ovan för att navigera.</p>
+<div class="page">
+  <div class="welcome-hero">
+    <h1>🌱 Hållbarhetskollen</h1>
+    <p>Logga dina aktiviteter och följ din CO₂e-påverkan per vecka</p>
+  </div>
+  <div class="welcome-grid">
+    <a href="/ui/users" class="welcome-card">
+      <div class="icon">👤</div>
+      <h3>Användare</h3>
+      <p style="font-size:0.85rem;color:#666;margin-top:0.3rem">Hantera användare</p>
+    </a>
+    <a href="/ui/activities" class="welcome-card">
+      <div class="icon">📋</div>
+      <h3>Aktiviteter</h3>
+      <p style="font-size:0.85rem;color:#666;margin-top:0.3rem">Logga aktiviteter</p>
+    </a>
+    <a href="/ui/reports/weekly" class="welcome-card">
+      <div class="icon">📊</div>
+      <h3>Veckorapport</h3>
+      <p style="font-size:0.85rem;color:#666;margin-top:0.3rem">Se din CO₂e-data</p>
+    </a>
+    <a href="/docs" target="_blank" class="welcome-card">
+      <div class="icon">⚡</div>
+      <h3>API Docs</h3>
+      <p style="font-size:0.85rem;color:#666;margin-top:0.3rem">Swagger / OpenAPI</p>
+    </a>
+  </div>
+</div>
 {% endblock %}
